@@ -1,1 +1,1 @@
-# BTC-4H-Prediction-Model
+# btc-4h-direction\n\nQuant BTC 4H direction pipeline (educational).\n
