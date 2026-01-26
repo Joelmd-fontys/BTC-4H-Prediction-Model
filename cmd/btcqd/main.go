@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"BTC-4H-Prediction-Model/internal/exchange"
+	"fmt"
+)
 
 func main() {
-	fmt.Println("btcqd: scaffold ok")
+	fmt.Printf(exchange.BuildKlinesURL("BTCUSDT", "4h", 5))
 }
