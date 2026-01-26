@@ -42,3 +42,4 @@ For the full series:
 - Interval parameter: `interval=4h`
 - Symbol: `BTCUSDT`
 - Kline identity: candles are keyed by **open time** (openTime)
+- pKey: exchange, symbol, timeframe, ts
