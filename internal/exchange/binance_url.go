@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func BuildKlinesURL(symbol string, interval string, limit int) string {
+func BuildKlinesURL(symbol string, timeframe string, limit int) string {
 	url := url.URL{
 		Scheme: "https",
 		Host:   "api.binance.com",
@@ -14,7 +14,7 @@ func BuildKlinesURL(symbol string, interval string, limit int) string {
 
 	query := url.Query()
 	query.Set("symbol", symbol)
-	query.Set("interval", interval)
+	query.Set("interval", timeframe)
 	query.Set("limit", strconv.Itoa(limit))
 
 	url.RawQuery = query.Encode()
