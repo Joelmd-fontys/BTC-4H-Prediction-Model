@@ -4,71 +4,76 @@ import (
 	"BTC-4H-Prediction-Model/internal/exchange"
 	"BTC-4H-Prediction-Model/internal/store"
 	"context"
+	"database/sql"
 	"fmt"
-	"io"
-	"net/http"
+	"time"
 )
-import _ "modernc.org/sqlite"
 
 func main() {
+	context := context.Background()
 
-	var exchangeName = "binance"
-	var symbol = "BTCUSDT"
-	var timeframe = "4h"
-	var limit = 500
-	var dbPath = "btcqd.sqlite"
+	// Use ONE db path consistently (recommend storing DB in /data)
+	databasePath := "btcqd.sqlite"
 
-	// 1) Build URL
-	url := exchange.BuildKlinesURL(symbol, timeframe, limit)
-	fmt.Println("request:", url)
-
-	// 2) Fetch
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println("http get error:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Println("non-200 response:", resp.Status)
-		return
-	}
-
-	// 3) Read response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("read body error:", err)
-		return
-	}
-
-	// 4) Parse candles (all 5)
-	cs, err := exchange.ParseKlinesToCandles(body, exchangeName, symbol, timeframe)
-	if err != nil {
-		fmt.Println("parse error:", err)
-		return
-	}
-	fmt.Println("candles parsed:", len(cs))
-
-	// 5) Open DB
-	db, err := store.OpenSQLite(dbPath)
+	database, err := store.OpenSQLite(databasePath)
 	if err != nil {
 		fmt.Println("open db error:", err)
 		return
 	}
-	defer db.Close()
-	fmt.Println("db opened:", dbPath)
+	defer func(database *sql.DB) {
+		err := database.Close()
+		if err != nil {
+		}
+	}(database)
+	fmt.Println("db opened:", databasePath)
 
-	// 6) Insert ONE candle (first one)
-	ctx := context.Background()
-	if len(cs) == 0 {
-		fmt.Println("no candles to insert")
+	// Fetch: last 30 days of 4H candles
+	now := time.Now().UTC()
+	thirtyDaysAgo := now.Add(-30 * 24 * time.Hour)
+	startTimeMillis := thirtyDaysAgo.UnixMilli()
+	endTimeMillis := int64(0) // 0 means "no endTime filter"
+
+	binanceClient := exchange.NewBinanceClient()
+
+	candlesFetched, err := binanceClient.FetchKlinesPaginated(
+		context,
+		"BTCUSDT",
+		"4h",
+		startTimeMillis,
+		endTimeMillis,
+	)
+	if err != nil {
+		fmt.Println("fetch error:", err)
 		return
 	}
 
-	if err := store.InsertOneCandle(ctx, db, cs[0]); err != nil {
-		fmt.Println("insert error:", err)
+	if len(candlesFetched) == 0 {
+		fmt.Println("no candles fetched")
 		return
 	}
-	fmt.Println("inserted one candle ts:", cs[0].Timestamp)
+
+	fmt.Println("candles fetched:", len(candlesFetched))
+	fmt.Printf("first ts: %d\n", candlesFetched[0].Timestamp)
+	fmt.Printf("last  ts: %d\n", candlesFetched[len(candlesFetched)-1].Timestamp)
+
+	// Store: upsert all
+	if err := store.UpsertCandles(context, database, candlesFetched); err != nil {
+		fmt.Println("upsert error:", err)
+		return
+	}
+	fmt.Println("upserted:", len(candlesFetched))
+
+	// Verify count
+	count, err := countCandles(context, database)
+	if err != nil {
+		fmt.Println("count error:", err)
+		return
+	}
+	fmt.Println("candles in db:", count)
+}
+
+func countCandles(context context.Context, database *sql.DB) (int64, error) {
+	var count int64
+	err := database.QueryRowContext(context, `SELECT COUNT(*) FROM candles;`).Scan(&count)
+	return count, err
 }

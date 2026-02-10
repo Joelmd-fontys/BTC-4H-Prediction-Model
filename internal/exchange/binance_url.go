@@ -5,18 +5,21 @@ import (
 	"strconv"
 )
 
-func BuildKlinesURL(symbol string, timeframe string, limit int) string {
-	url := url.URL{
-		Scheme: "https",
-		Host:   "api.binance.com",
-		Path:   "/api/v3/klines",
-	}
+func BuildKlinesURL(symbol string, interval string, limit int, startTimeMillis int64, endTimeMillis int64) string {
+	baseURL := "https://api.binance.com"
+	path := "/api/v3/klines"
 
-	query := url.Query()
+	query := url.Values{}
 	query.Set("symbol", symbol)
-	query.Set("interval", timeframe)
+	query.Set("interval", interval)
 	query.Set("limit", strconv.Itoa(limit))
 
-	url.RawQuery = query.Encode()
-	return url.String()
+	if startTimeMillis > 0 {
+		query.Set("startTime", strconv.FormatInt(startTimeMillis, 10))
+	}
+	if endTimeMillis > 0 {
+		query.Set("endTime", strconv.FormatInt(endTimeMillis, 10))
+	}
+
+	return baseURL + path + "?" + query.Encode()
 }

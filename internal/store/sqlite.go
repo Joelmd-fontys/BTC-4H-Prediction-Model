@@ -3,17 +3,17 @@ package store
 import (
 	"database/sql"
 	"fmt"
+
+	_ "modernc.org/sqlite"
 )
 
 func OpenSQLite(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", path) // for modernc.org/sqlite
+	database, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, err
 	}
-
-	// Basic sanity check
-	if err := db.Ping(); err != nil {
+	if err := database.Ping(); err != nil {
 		return nil, fmt.Errorf("ping db: %w", err)
 	}
-	return db, nil
+	return database, nil
 }
