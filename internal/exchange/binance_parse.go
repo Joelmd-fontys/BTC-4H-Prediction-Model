@@ -1,7 +1,7 @@
 package exchange
 
 import (
-	"BTC-4H-Prediction-Model/internal/candles"
+	"btc-4h-prediction-model/internal/candles"
 	"encoding/json"
 	"fmt"
 	"strconv"

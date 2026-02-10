@@ -1,7 +1,7 @@
 package exchange
 
 import (
-	"BTC-4H-Prediction-Model/internal/candles"
+	"btc-4h-prediction-model/internal/candles"
 	"context"
 	"fmt"
 )
@@ -26,7 +26,7 @@ func (client BinanceClient) FetchKlinesPaginated(
 	endTimeMillis int64,
 ) ([]candles.Candle, error) {
 
-	intervalMillis, err := IntervalToMillis(interval)
+	intervalMillis, err := candles.TimeframeToMillis(interval)
 	if err != nil {
 		return nil, err
 	}
