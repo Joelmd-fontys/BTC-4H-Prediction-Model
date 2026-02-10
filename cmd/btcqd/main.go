@@ -2,6 +2,7 @@ package main
 
 import (
 	"BTC-4H-Prediction-Model/internal/exchange"
+	"BTC-4H-Prediction-Model/internal/ingest"
 	"BTC-4H-Prediction-Model/internal/store"
 	"context"
 	"database/sql"
@@ -70,6 +71,35 @@ func main() {
 		return
 	}
 	fmt.Println("candles in db:", count)
+
+	validationResult, err := ingest.ValidateCandleContinuity(
+		context,
+		database,
+		"binance",
+		"BTCUSDT",
+		"4h",
+		4*60*60*1000, // 4H in ms
+	)
+	if err != nil {
+		fmt.Println("validation error:", err)
+		return
+	}
+
+	fmt.Println("validation:")
+	fmt.Println("  count:", validationResult.Count)
+	fmt.Println("  first ts:", validationResult.FirstTS)
+	fmt.Println("  last ts:", validationResult.LastTS)
+	fmt.Println("  gaps:", len(validationResult.Gaps))
+
+	// Print first few gaps (don’t spam)
+	maxGapsToPrint := 5
+	for i, gap := range validationResult.Gaps {
+		if i >= maxGapsToPrint {
+			break
+		}
+		fmt.Printf("  gap %d: prev=%d expected=%d actual=%d missingIntervals=%d\n",
+			i+1, gap.PreviousTS, gap.ExpectedTS, gap.ActualTS, gap.Missing)
+	}
 }
 
 func countCandles(context context.Context, database *sql.DB) (int64, error) {
