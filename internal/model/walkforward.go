@@ -19,6 +19,8 @@ type WalkForwardResult struct {
 	BaselineNoTrade ConfusionMatrix
 	BaselineRandom  ConfusionMatrix
 	LogReg          ConfusionMatrix
+
+	LogRegPredictions []PredictionRow
 }
 
 func rowsToMatrix(rows []DatasetRow) (*mat.Dense, []Class) {
@@ -98,9 +100,34 @@ func EvaluateWalkForward(dataset []DatasetRow, config TrainConfig) (WalkForwardR
 			return WalkForwardResult{}, err
 		}
 
+		P := model.PredictProba(Xtest) // r x 3
 		pred := model.Predict(Xtest)
+
 		for i := range testRows {
-			result.LogReg.Add(testRows[i].Label, pred[i])
+			actual := testRows[i].Label
+			predicted := pred[i]
+
+			result.LogReg.Add(actual, predicted)
+
+			// Save OOS prediction row
+			pUp := P.At(i, int(ClassUp))
+			pDown := P.At(i, int(ClassDown))
+			pNoTrade := P.At(i, int(ClassNoTrade))
+
+			result.LogRegPredictions = append(result.LogRegPredictions, PredictionRow{
+				Exchange:  testRows[i].Exchange,
+				Symbol:    testRows[i].Symbol,
+				Timeframe: testRows[i].Timeframe,
+				Timestamp: testRows[i].Timestamp,
+				ModelName: "logreg_softmax",
+
+				PUp:      pUp,
+				PDown:    pDown,
+				PNoTrade: pNoTrade,
+
+				Predicted: predicted,
+				Actual:    actual,
+			})
 		}
 	}
 

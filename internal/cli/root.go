@@ -27,6 +27,8 @@ func Execute() {
 	rootCommand.AddCommand(featuresCommand)
 	rootCommand.AddCommand(labelsCommand)
 	rootCommand.AddCommand(trainCommand)
+	rootCommand.AddCommand(confidenceCommand)
+	rootCommand.AddCommand(paperCommand)
 
 	if err := rootCommand.Execute(); err != nil {
 		fmt.Println(err)

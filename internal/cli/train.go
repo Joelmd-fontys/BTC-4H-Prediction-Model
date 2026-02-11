@@ -10,6 +10,7 @@ import (
 	"btc-4h-prediction-model/internal/store"
 )
 
+var trainWritePredictions bool
 var trainSymbol string
 var trainTimeframe string
 
@@ -56,6 +57,12 @@ var trainCommand = &cobra.Command{
 		fmt.Println("always NO_TRADE:", result.BaselineNoTrade.SummaryString())
 		fmt.Println("random baseline:", result.BaselineRandom.SummaryString())
 		fmt.Println("logreg softmax:", result.LogReg.SummaryString())
+		if trainWritePredictions {
+			if err := store.UpsertPredictions(ctx, db, result.LogRegPredictions); err != nil {
+				return err
+			}
+			fmt.Println("predictions upserted:", len(result.LogRegPredictions))
+		}
 
 		return nil
 	},
@@ -70,4 +77,5 @@ func init() {
 	trainCommand.Flags().Float64Var(&trainLearningRate, "lr", 0.5, "Learning rate")
 	trainCommand.Flags().Float64Var(&trainL2Lambda, "l2", 0.001, "L2 regularization strength")
 	trainCommand.Flags().Int64Var(&trainSeed, "seed", 42, "Random seed for baselines")
+	trainCommand.Flags().BoolVar(&trainWritePredictions, "write-preds", true, "Write out-of-sample predictions to DB")
 }
